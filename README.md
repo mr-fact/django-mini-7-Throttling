@@ -137,3 +137,22 @@ REST_FRAMEWORK = {
     }
 }
 ```
+## Custom throttles
+- override `BaseThrottle`
+- implement `.allow_request(self, request, view)`
+- return `True` if the request should be `allowed`
+- `False` otherwise
+- [Optionally] override the `.wait()` (a `Retry-After` header will be included in the response)
+
+`.allow_request()` -> return `True`
+
+`.allow_request()` -> return `False` -> `.wait()` -> return a `number` (of seconds to wait) or `None`
+
+example
+``` python
+import random
+
+class RandomRateThrottle(throttling.BaseThrottle):
+    def allow_request(self, request, view):
+        return random.randint(1, 10) != 1
+```
