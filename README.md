@@ -85,3 +85,55 @@ class CustomAnonRateThrottle(AnonRateThrottle):
 The built-in throttle implementations are open to [race conditions](https://en.wikipedia.org/wiki/Race_condition#Data_race), so under high concurrency they may allow a few extra requests through.
 
 If your project relies on guaranteeing the number of requests during concurrent requests, you will need to implement your own throttle class. See [issue #5181](https://github.com/encode/django-rest-framework/issues/5181) for more details.
+
+
+## API Reference
+- `AnonRateThrottle` is suitable if you want to restrict the rate of requests from unknown sources
+- `UserRateThrottle` is suitable if you want simple global rate restrictions per-user
+- `ScopedRateThrottle` class can be used to restrict access to specific parts of the API
+
+An API may have multiple `UserRateThrottles` in place at the same time. To do so, override `UserRateThrottle` and set a `unique "scope"` for each class.
+``` python
+class BurstRateThrottle(UserRateThrottle):
+    scope = 'burst'
+
+class SustainedRateThrottle(UserRateThrottle):
+    scope = 'sustained'
+```
+``` python
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'example.throttles.BurstRateThrottle',
+        'example.throttles.SustainedRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'burst': '60/min',
+        'sustained': '1000/day'
+    }
+}
+```
+`ScopedRateThrottle` will only be applied if the `view` that is being accessed includes a `.throttle_scope` property. 
+``` python
+class ContactListView(APIView):
+    throttle_scope = 'contacts'
+    ...
+
+class ContactDetailView(APIView):
+    throttle_scope = 'contacts'
+    ...
+
+class UploadView(APIView):
+    throttle_scope = 'uploads'
+    ...
+```
+``` python
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'contacts': '1000/day',
+        'uploads': '20/day'
+    }
+}
+```
